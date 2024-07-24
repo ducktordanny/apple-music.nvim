@@ -72,6 +72,52 @@ M.play_track = function(track)
 	local result = execute(command)
 end
 
+-- TODO: Make this less ugly...
+
+---Show details of current song
+---@usage require('nvim-apple-music').current_track_details()
+M.current_track_details = function()
+  local command = string.format([[
+    osascript -e '
+    tell application "Music"
+      set current_track to current track
+      set track_name to name of current_track
+      set track_artist to artist of current_track
+      set track_album to album of current_track
+      set track_played_count to played count of current_track
+      set track_loved to loved of current_track
+      if track_loved then
+        set loved_string to "true"
+      else
+        set loved_string to "false"
+      end if
+
+      set result to ""& track_name &"\n"
+      set result to result & ""& track_artist &"\n"
+      set result to result & ""& track_album &"\n"
+      set result to result & ""& track_played_count &"\n"
+      set result to result & ""& loved_string &""
+    end tell
+    return result
+    ' -s s
+  ]])
+  local handle = io.popen(command)
+  if not handle then return end
+  local result = handle:read("*a")
+  handle:close()
+  local details = vim.fn.split(result, "\n")
+  details[1] = details[1]:sub(2, -1)
+  details[#details] = details[#details]:sub(1, -2)
+  details[4] = tonumber(details[4])
+  if details[5] == "true" then
+    details[5] = true
+  else
+    details[5] = false
+  end
+  P(details)
+end
+M.current_track_details()
+
 ---Play a playlist by name
 ---@param playlist string: The name of the playlist to play
 ---@usage require('nvim-apple-music').play_playlist("Slow Dance")
